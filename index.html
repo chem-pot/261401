@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>규산염 광물 구조 시뮬레이션</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 50%, #0d0d3d 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        /* 헤더 */
+        .header {
+            text-align: center;
+            padding: 30px 20px 20px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 2px solid rgba(100,150,255,0.3);
+        }
+        .header h1 {
+            font-size: 2.2em;
+            background: linear-gradient(90deg, #64b3f4, #c2e59c, #f7971e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .header p { color: #aac; font-size: 1em; }
+
+        /* 탭 메뉴 */
+        .tab-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+        }
+        .tab-btn {
+            padding: 10px 18px;
+            border: 2px solid rgba(100,150,255,0.4);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            font-family: 'Malgun Gothic', sans-serif;
+        }
+        .tab-btn:hover { transform: translateY(-2px); }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4a90d9, #357abd);
+            border-color: #64b3f4;
+            box-shadow: 0 4px 15px rgba(100,180,255,0.4);
+        }
+
+        /* 메인 컨텐츠 */
+        .content-area {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .mineral-panel {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        .mineral-panel.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 정보 카드 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        @media(max-width: 700px) { .info-grid { grid-template-columns: 1fr; } }
+
+        .info-card {
+            background: rgba(255,255,255,0.07);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .info-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #7dd3fc;
+            border-bottom: 1px solid rgba(125,211,252,0.3);
+            padding-bottom: 6px;
+        }
+        .info-card p, .info-card li {
+            font-size: 0.9em;
+            color: #ccd;
+            line-height: 1.7;
+        }
+        .info-card ul { padding-left: 18px; }
+
+        /* 배지 */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin: 3px;
+        }
+        .badge-blue { background: rgba(59,130,246,0.4); border: 1px solid #3b82f6; }
+        .badge-green { background: rgba(34,197,94,0.4); border: 1px solid #22c55e; }
+        .badge-orange { background: rgba(249,115,22,0.4); border: 1px solid #f97316; }
+        .badge-purple { background: rgba(168,85,247,0.4); border: 1px solid #a855f7; }
+        .badge-red { background: rgba(239,68,68,0.4); border: 1px solid #ef4444; }
+
+        /* 캔버스 영역 */
+        .canvas-section {
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(100,150,255,0.2);
+            margin-bottom: 20px;
+        }
+        .canvas-title {
+            text-align: center;
+            font-size: 1.1em;
+            color: #7dd3fc;
+            margin-bottom: 15px;
+        }
+        .canvas-wrapper {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        canvas {
+            border-radius: 12px;
+            background: #0a0a1e;
+            border: 1px solid rgba(100,150,255,0.3);
+        }
+
+        /* 버튼 */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-family: 'Malgun Gothic', sans-serif;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn:active { transform: translateY(0); }
+
+        /* 설명 텍스트 */
+        .desc-box {
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin: 10px 0;
+            font-size: 0.88em;
+            color: #bbd;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* 비교 테이블 */
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.85em;
+        }
+        .compare-table th {
+            background: rgba(59,130,246,0.3);
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #7dd3fc;
+        }
+        .compare-table td {
+            padding: 9px;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #ccd;
+            text-align: center;
+        }
+        .compare-table tr:nth-child(even) td {
+            background: rgba(255,255,255,0.03);
+        }
+        .compare-table tr:hover td {
+            background: rgba(100,150,255,0.1);
+        }
+
+        /* 범례 */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82em;
+            color: #aac;
+        }
+        .legend-dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        /* 진행 표시 */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .step-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s;
+        }
+        .step-dot.active { background: #3b82f6; transform: scale(1.3); }
+
+        /* 쪼개짐 설명 */
+        .cleavage-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .cleavage-card {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .cleavage-card h4 { color: #fca5a5; margin-bottom: 6px; font-size: 0.95em; }
+        .cleavage-card p { color: #ccd; font-size: 0.82em; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🔬 규산염 광물 구조 시뮬레이션</h1>
+    <p>결합 구조 형성 & 쪼개짐(벽개) 애니메이션 | 고등학교 1학년 지구과학</p>
+</div>
+
+<!-- 탭 -->
+<div class="tab-container">
+    <button class="tab-btn active" onclick="showPanel('intro')">📊 전체 비교</button>
+    <button class="tab-btn" onclick="showPanel('olivine')">🟢 감람석</button>
+    <button class="tab-btn" onclick="showPanel('pyroxene')">🔵 휘석</button>
+    <button class="tab-btn" onclick="showPanel('amphibole')">🟣 각섬석</button>
+    <button class="tab-btn" onclick="showPanel('biotite')">🟤 흑운모</button>
+    <button class="tab-btn" onclick="showPanel('quartz')">⚪ 석영</button>
+    <button class="tab-btn" onclick="showPanel('feldspar')">🟡 장석</button>
+</div>
+
+<div class="content-area">
+
+    <!-- ==================== 전체 비교 패널 ==================== -->
+    <div id="panel-intro" class="mineral-panel active">
+        <div class="info-card" style="margin-bottom:20px;">
+            <h3>📌 규산염 광물이란?</h3>
+            <p>규산염 광물은 지각을 이루는 가장 중요한 광물 그룹이에요. 기본 단위는 <strong style="color:#f0a500;">SiO₄ 사면체</strong>로, 규소(Si) 1개가 산소(O) 4개에 둘러싸인 구조예요. 이 사면체들이 어떻게 연결되느냐에 따라 서로 다른 광물이 만들어져요!</p>
+        </div>
+
+        <!-- SiO4 기본 단위 시뮬레이션 -->
+        <div class="canvas-section">
+            <div class="canvas-title">⚛️ SiO₄ 사면체 - 규산염의 기본 단위</div>
+            <div style="text-align:center;">
+                <canvas id="canvas-sio4" width="400" height="300"></canvas>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b;"></div> 산소(O) - 빨간색</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#4ecdc4;"></div> 규소(Si) - 청록색</div>
+            </div>
+            <div class="desc-box">💡 Si 1개가 O 4개를 공유 → 전하: Si⁴⁺ + 4O²⁻ = -4 (음전하를 띰) → 양이온과 결합하거나 산소를 공유해서 안정!</div>
+        </div>
+
+        <!-- 비교 테이블 -->
+        <div class="info-card">
+            <h3>📊 규산염 광물 한눈에 비교</h3>
+            <div style="overflow-x:auto;">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>광물명</th>
+                            <th>결합 구조</th>
+                            <th>Si:O 비율</th>
+                            <th>공유 산소 수</th>
+                            <th>쪼개짐</th>
+                            <th>대표 색</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🟢 감람석</td>
+                            <td>독립형 (단독 사면체)</td>
+                            <td>1:4</td>
+                            <td>0개</td>
+                            <td>없음 (패각상)</td>
+                            <td>황록색~녹색</td>
+                        </tr>
+                        <tr>
+                            <td>🔵 휘석</td>
+                            <td>단사슬형</td>
+                            <td>1:3</td>
+                            <td>2개</td>
+                            <td>2방향 (약 90°)</td>
+                            <td>녹색~흑색</td>
+                        </tr>
+                        <tr>
+                            <td>🟣 각섬석</td>
+                            <td>복사슬형</td>
+                            <td>4:11</td>
+                            <td>2.5개(평균)</td>
+                            <td>2방향 (약 120°/60°)</td>
+                            <td>녹색~흑색</td>
+                        </tr>
+                        <tr>
+                            <td>🟤 흑운모</td>
+                            <td>판상형 (층상)</td>
+                            <td>2:5</td>
+                            <td>3개</td>
+                            <td>1방향 (완전)</td>
+                            <td>흑색~갈색</td>
+                        </tr>
+                        <tr>
+                            <td>⚪ 석영</td>
+                            <td>망상형 (3D)</td>
+                            <td>1:2</td>
+                            <td>4개</td>
+                            <td>없음 (패각상)</td>
+                            <td>무색~백색</td>
+                        </tr>
+                        <tr>
+                            <td>🟡 장석</td>
+                            <td>망상형 (Al 치환)</td>
+                            <td>~1:2</td>
+                            <td>4개</td>
+                            <td>2방향 (완전)</td>
+                            <td>백색~분홍</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 전체 구조 비교 캔버스 -->
+        <div class="canvas-section" style="margin-top:20px;">
+            <div class="canvas-title">🔍 구조 비교 다이어그램</div>
+            <canvas id="canvas-compare" width="760" height="200" style="max-width:100%;"></canvas>
+            <div class="desc-box">독립형 → 단사슬 → 복사슬 → 판상 → 망상 순으로 Si-O 결합이 많아져요!</div>
+        </div>
+    </div>
+
+    <!-- ==================== 감람석 패널 ==================== -->
+    <div id="panel-olivine" class="mineral-panel">
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🟢 감람석 (Olivine)</h3>
+                <p><span class="badge badge-blue">독립형 구조</span> <span class="badge badge-green">Si:O = 1:4</span></p>
+                <br>
+                <ul>
+                    <li>SiO₄ 사면체가 <strong>서로 연결되지 않고</strong> 독립적으로 존재</li>
+                    <li>Fe²⁺, Mg²⁺ 등 양이온이 사면체 사이를 연결</li>
+                    <li>화학식: (Mg,Fe)₂SiO₄</li>
+                    <li>지구 맨틀의 주요 구성 광물</li>
+                    <li>쪼개짐: <strong style="color:#fca5a5;">없음</strong> → 패각상 단구</li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3>📐 구조 특징</h3>
+                <ul>
+                    <li>공유 산소: <strong>0개</strong></li>
+                    <li>결합 방향: 이온 결합으로 3D 연결</li>
+                    <li>경도: 6.5~7 (단단함)</li>
+                    <li>투명~반투명, 황록색</li>
+                    <li>고온 용융체에서 가장 먼저 정출</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <div class="canvas-title">⚙️ 감람석 구조 형성 & 쪼개짐 시뮬레이션</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="olivineAnim('build')">▶ 구조 형성 보기</button>
+                <button class="btn btn-danger" onclick="olivineAnim('cleave')">💥 쪼개짐 보기</button>
+                <button class="btn btn-warning" onclick="olivineAnim('reset')">🔄 초기화</button>
+            </div>
+            <div style="text-align:center;">
+                <canvas id="canvas-olivine" width="600" height="380"></canvas>
+            </div>
+            <div id="desc-olivine" class="desc-box">▶ '구조 형성 보기' 버튼을 눌러 시작하세요!</div>
+        </div>
+
+        <div class="cleavage-info">
+            <div class="cleavage-card">
+                <h4>🔴 쪼개짐 없음 (패각상 단구)</h4>
+                <p>사면체가 이온 결합으로 연결되어 특정 방향의 약한 면이 없어요. 조개껍데기처럼 불규칙하게 깨져요.</p>
+            </div>
+            <div class="cleavage-card" style="border-color:rgba(34,197,94,0.3); background:rgba(34,197,94,0.1);">
+                <h4>🟢 이온 결합의 특징</h4>
+                <p>Fe²⁺, Mg²⁺가 SiO₄ 사면체 4개를 동시에 붙잡아요. 방향성 없이 균일하게 결합!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 휘석 패널 ==================== -->
+    <div id="panel-pyroxene" class="mineral-panel">
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🔵 휘석 (Pyroxene)</h3>
+                <p><span class="badge badge-blue">단사슬 구조</span> <span class="badge badge-green">Si:O = 1:3</span></p>
+                <br>
+                <ul>
+                    <li>SiO₄ 사면체가 산소 2개를 공유하며 <strong>1줄 사슬</strong> 형성</li>
+                    <li>사슬 사이는 Mg²⁺, Fe²⁺, Ca²⁺ 등이 연결</li>
+                    <li>화학식: (Mg,Fe)SiO₃</li>
+                    <li>쪼개짐: <strong style="color:#fca5a5;">2방향 (약 90°)</strong></li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3>📐 구조 특징</h3>
+                <ul>
+                    <li>공유 산소: <strong>2개</strong></li>
+                    <li>사슬 방향으로 강하게 결합</li>
+                    <li>사슬 사이는 약하게 연결 → 쪼개짐!</li>
+                    <li>경도: 5~6</li>
+                    <li>녹색~흑색, 불투명</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <div class="canvas-title">⚙️ 휘석 단사슬 구조 형성 & 쪼개짐 시뮬레이션</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="pyroxeneAnim('build')">▶ 사슬 형성 보기</button>
+                <button class="btn btn-danger" onclick="pyroxeneAnim('cleave')">💥 90° 쪼개짐 보기</button>
+                <button class="btn btn-warning" onclick="pyroxeneAnim('reset')">🔄 초기화</button>
+            </div>
+            <div style="text-align:center;">
+                <canvas id="canvas-pyroxene" width="600" height="380"></canvas>
+            </div>
+            <div id="desc-pyroxene" class="desc-box">▶ '사슬 형성 보기' 버튼을 눌러 시작하세요!</div>
+        </div>
+
+        <div class="cleavage-info">
+            <div class="cleavage-card">
+                <h4>✂️ 2방향 쪼개짐 (~90°)</h4>
+                <p>사슬과 사슬 사이 이온 결합이 약해서 90° 각도로 깔끔하게 쪼개져요!</p>
+            </div>
+            <div class="cleavage-card" style="border-color:rgba(59,130,246,0.3); background:rgba(59,130,246,0.1);">
+                <h4>🔗 단사슬의 강점</h4>
+                <p>사슬 방향(위아래)은 Si-O 공유결합으로 매우 강해요. 사슬 사이만 약합니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 각섬석 패널 ==================== -->
+    <div id="panel-amphibole" class="mineral-panel">
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🟣 각섬석 (Amphibole)</h3>
+                <p><span class="badge badge-purple">복사슬 구조</span> <span class="badge badge-green">Si:O = 4:11</span></p>
+                <br>
+                <ul>
+                    <li>단사슬 2개가 <strong>지그재그로 연결</strong>된 이중 사슬</li>
+                    <li>OH⁻ (수산화기) 포함!</li>
+                    <li>화학식: Ca₂(Mg,Fe)₅Si₈O₂₂(OH)₂</li>
+                    <li>쪼개짐: <strong style="color:#fca5a5;">2방향 (약 120°/60°)</strong></li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3>📐 구조 특징</h3>
+                <ul>
+                    <li>공유 산소: 평균 <strong>2.5개</strong></li>
+                    <li>복사슬로 단사슬보다 넓음</li>
+                    <li>쪼개짐 각도로 휘석과 구분!</li>
+                    <li>경도: 5~6</li>
+                    <li>녹색~흑색</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <div class="canvas-title">⚙️ 각섬석 복사슬 구조 & 쪼개짐 시뮬레이션</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="amphiboleAnim('build')">▶ 복사슬 형성 보기</button>
+                <button class="btn btn-danger" onclick="amphiboleAnim('cleave')">💥 120° 쪼개짐 보기</button>
+                <button class="btn btn-warning" onclick="amphiboleAnim('reset')">🔄 초기화</button>
+            </div>
+            <div style="text-align:center;">
+                <canvas id="canvas-amphibole" width="600" height="380"></canvas>
+            </div>
+            <div id="desc-amphibole" class="desc-box">▶ '복사슬 형성 보기' 버튼을 눌러 시작하세요!</div>
+        </div>
+
+        <div class="cleavage-info">
+            <div class="cleavage-card">
+                <h4>✂️ 2방향 쪼개짐 (~120°/60°)</h4>
+                <p>복사슬 구조라 쪼개짐 각도가 120°예요. 이걸로 휘석(90°)과 구분해요!</p>
+            </div>
+            <div class="cleavage-card" style="border-color:rgba(168,85,247,0.3); background:rgba(168,85,247,0.1);">
+                <h4>🔗 복사슬 vs 단사슬</h4>
+                <p>단사슬보다 더 많은 산소를 공유 → 사슬이 넓어짐 → 쪼개짐 방향이 달라져요!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 흑운모 패널 ==================== -->
+    <div id="panel-biotite" class="mineral-panel">
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🟤 흑운모 (Biotite)</h3>
+                <p><span class="badge badge-orange">판상형 구조</span> <span class="badge badge-green">Si:O = 2:5</span></p>
+                <br>
+                <ul>
+                    <li>SiO₄ 사면체가 산소 3개를 공유하며 <strong>2차원 판(층)</strong> 형성</li>
+                    <li>K⁺가 층 사이를 약하게 연결</li>
+                    <li>화학식: K(Mg,Fe)₃(AlSi₃O₁₀)(OH)₂</li>
+                    <li>쪼개짐: <strong style="color:#fca5a5;">1방향 (완전)</strong> → 얇은 판으로 벗겨짐</li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3>📐 구조 특징</h3>
+                <ul>
+                    <li>공유 산소: <strong>3개</strong></li>
+                    <li>층 내부: 강한 Si-O 공유결합</li>
+                    <li>층 사이: K⁺ 이온 결합 → 매우 약함!</li>
+                    <li>경도: 2.5~3 (무름)</li>
+                    <li>흑색~갈색, 진주빛 광택</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <div class="canvas-title">⚙️ 흑운모 층상 구조 & 쪼개짐 시뮬레이션</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="biotiteAnim('build')">▶ 층 형성 보기</button>
+                <button class="btn btn-danger" onclick="biotiteAnim('cleave')">💥 층 벗겨짐 보기</button>
+                <button class="btn btn-warning" onclick="biotiteAnim('reset')">🔄 초기화</button>
+            </div>
+            <div style="text-align:center;">
+                <canvas id="canvas-biotite" width="600" height="380"></canvas>
+            </div>
+            <div id="desc-biotite" class="desc-box">▶ '층 형성 보기' 버튼을 눌러 시작하세요!</div>
+        </div>
+
+        <div class="cleavage-info">
+            <div class="cleavage-card">
+                <h4>✂️ 1방향 쪼개짐 (완전)</h4>
+                <p>K⁺ 이온 결합이 너무 약해서 수평 방향으로만 깔끔하게 벗겨져요. 얇은 판처럼!</p>
+            </div>
+            <div class="cleavage-card" style="border-color:rgba(249,115,22,0.3); background:rgba(249,115,22,0.1);">
+                <h4>📄 판상 구조의 비밀</h4>
+                <p>층 안은 공유결합으로 강하지만, 층 사이 K⁺만 잡아당기면 종이처럼 벗겨져요!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 석영 패널 ==================== -->
+    <div id="panel-quartz" class="mineral-panel">
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>⚪ 석영 (Quartz)</h3>
+                <p><span class="badge badge-green">망상형 구조</span> <span class="badge badge-blue">Si:O = 1:2</span></p>
+                <br>
+                <ul>
+                    <li>SiO₄ 사면체가 산소 4개를 모두 공유 → <strong>3차원 망상</strong></li>
+                    <li>여분의 양이온 없음 (완전 공유)</li>
+                    <li>화학식: SiO₂</li>
+                    <li>쪼개짐: <strong style="color:#fca5a5;">없음</strong> → 패각상 단구</li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3>📐 구조 특징</h3>
+                <ul>
+                    <li>공유 산소: <strong>4개 (전부!)</strong></li>
+                    <li>모든 방향 균일하게 강한 결합</li>
+                    <li>경도: 7 (매우 단단)</li>
+                    <li>무색~백색, 유리 광택</li>
+                    <li>화강암의 주요 성분</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <div class="canvas-title">⚙️ 석영 3D 망상 구조 & 쪼개짐 시뮬레이션</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="quartzAnim('build')">▶ 망상 구조 형성</button>
+                <button class="btn btn-danger" onclick="quartzAnim('cleave')">💥 패각상 단구 보기</button>
+                <button class="btn btn-warning" onclick="quartzAnim('reset')">🔄 초기화</button>
+            </div>
+            <div style="text-align:center;">
+                <canvas id="canvas-quartz" width="600" height="380"></canvas>
+            </div>
+            <div id="desc-quartz" class="desc-box">▶ '망상 구조 형성' 버튼을 눌러 시작하세요!</div>
+        </div>
+
+        <div class="cleavage-info">
+            <div class="cleavage-card">
+                <h4>🔴 쪼개짐 없음 (패각상)</h4>
+                <p>모든 방향이 똑같이 강해서 약한 면이 없어요. 조개처럼 울퉁불퉁하게 깨져요!</p>
+            </div>
+            <div class="cleavage-card" style="border-color:rgba(34,197,94,0.3); background:rgba(34,197,94,0.1);">
+                <h4>💎 가장 강한 구조</h4>
+                <p>Si-O 공유결합 4방향 → 모든 광물 중 가장 균일하고 강한 결합 구조!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 장석 패널 ==================== -->
+    <div id="panel-feldspar" class="mineral-panel">
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🟡 장석 (Feldspar)</h3>
+                <p><span class="badge badge-green">망상형 구조</span> <span class="badge badge-orange">Al 치환</span></p>
+                <br>
+                <ul>
+                    <li>석영과 같은 망상 구조지만 <strong>Si 일부를 Al이 치환</strong></li>
+                    <li>Al 치환으로 음전하 발생 → K⁺, Na⁺, Ca²⁺로 중화</li>
+                    <li>정장석: KAlSi₃O₈ / 사장석: (Na,Ca)AlSi₃O₈</li>
+                    <li>쪼개짐: <strong style="color:#fca5a5;">2방향 (완전)</strong></li>
+                </ul>
+            </div>
+            <div class="info-card">
+                <h3>📐 구조 특징</h3>
+                <ul>
+                    <li>공유 산소: <strong>4개</strong></li>
+                    <li>Al 치환 부위가 약한 면 형성</li>
+                    <li>경도: 6 (단단함)</li>
+                    <li>백색~분홍~회색</li>
+                    <li>지각에서 가장 많은 광물!</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <div class="canvas-title">⚙️ 장석 망상 구조 & Al 치환 & 쪼개짐 시뮬레이션</div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="feldsparAnim('build')">▶ 망상 구조 형성</button>
+                <button class="btn btn-warning" onclick="feldsparAnim('substitute')">🔄 Al 치환 보기</button>
+                <button class="btn btn-danger" onclick="feldsparAnim('cleave')">💥 2방향 쪼개짐 보기</button>
+                <button class="btn btn-success" onclick="feldsparAnim('reset')">🔄 초기화</button>
+            </div>
+            <div style="text-align:center;">
+                <canvas id="canvas-feldspar" width="600" height="380"></canvas>
+            </div>
+            <div id="desc-feldspar" class="desc-box">▶ '망상 구조 형성' 버튼을 눌러 시작하세요!</div>
+        </div>
+
+        <div class="cleavage-info">
+            <div class="cleavage-card">
+                <h4>✂️ 2방향 쪼개짐 (완전)</h4>
+                <p>Al-O 결합이 Si-O보다 약하고, 양이온 연결 부위가 약해서 2방향으로 쪼개져요!</p>
+            </div>
+            <div class="cleavage-card" style="border-color:rgba(234,179,8,0.3); background:rgba(234,179,8,0.1);">
+                <h4>🔬 석영 vs 장석 차이</h4>
+                <p>같은 망상이지만 Al 치환으로 약점 생성! 그래서 장석은 쪼개지고 석영은 안 쪼개져요.</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- content-area end -->
+
+<script>
+// ============================================================
+//  유틸리티
+// ============================================================
+function getCtx(id) {
+    return document.getElementById(id).getContext('2d');
+}
+
+function drawAtom(ctx, x, y, r, color, label, labelColor) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+    g.addColorStop(0, lightenColor(color, 60));
+    g.addColorStop(1, color);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    if (label) {
+        ctx.fillStyle = labelColor || '#fff';
+        ctx.font = `bold ${Math.max(10, r * 0.7)}px Malgun Gothic`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x, y);
+    }
+}
+
+function lightenColor(hex, amount) {
+    const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + amount);
+    const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + amount);
+    const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + amount);
+    return `rgb(${r},${g},${b})`;
+}
+
+function drawBond(ctx, x1, y1, x2, y2, color, width) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color || 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = width || 2;
+    ctx.stroke();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color || '#ffdd00';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 10 * Math.cos(angle - 0.4), y2 - 10 * Math.sin(angle - 0.4));
+    ctx.lineTo(x2 - 10 * Math.cos(angle + 0.4), y2 - 10 * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color || '#ffdd00';
+    ctx.fill();
+}
+
+function clearCanvas(id) {
+    const c = document.getElementById(id);
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    // 배경
+    const grad = ctx.createLinearGradient(0, 0, c.width, c.height);
+    grad.addColorStop(0, '#050520');
+    grad.addColorStop(1, '#0a0a2e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, c.width, c.height);
+    return ctx;
+}
+
+function drawLabel(ctx, text, x, y, color, size) {
+    ctx.fillStyle = color || '#ffffff';
+    ctx.font = `${size || 13}px Malgun Gothic`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+}
+
+function drawTitle(ctx, text, x, y) {
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = 'bold 15px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+}
+
+// ============================================================
+//  SiO4 사면체 - 기본 단위
+// ============================================================
+(function() {
+    const ctx = clearCanvas('canvas-sio4');
+    const W = 400, H = 300;
+    let angle = 0;
+
+    function drawSiO4(rot) {
+        ctx.clearRect(0, 0, W, H);
+        const grad = ctx.createLinearGradient(0, 0, W, H);
+        grad.addColorStop(0, '#050520');
+        grad.addColorStop(1, '#0a0a2e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        const cx = W / 2, cy = H / 2;
+        const r = 70;
+
+        // O 위치 (삼각형 + 위아래)
+        const oPos = [
+            { x: cx + r * Math.cos(rot), y: cy + r * 0.5 * Math.sin(rot) - 40 },
+            { x: cx + r * Math.cos(rot + 2.094), y: cy + r * 0.5 * Math.sin(rot + 2.094) + 20 },
+            { x: cx + r * Math.cos(rot + 4.189), y: cy + r * 0.5 * Math.sin(rot + 4.189) + 20 },
+            { x: cx, y: cy - 50 }
+        ];
+
+        // 결합선
+        oPos.forEach(o => drawBond(ctx, cx, cy, o.x, o.y, 'rgba(150,200,255,0.6)', 3));
+
+        // O 원자
+        oPos.forEach(o => drawAtom(ctx, o.x, o.y, 20, '#e74c3c', 'O', '#fff'));
+
+        // Si 원자
+        drawAtom(ctx, cx, cy, 18, '#1abc9c', 'Si', '#fff');
+
+        // 라벨
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '13px Malgun Gothic';
+        ctx.textAlign = 'center';
+        ctx.fillText('SiO₄ 사면체 (규소 1 : 산소 4)', cx, H - 20);
+    }
+
+    function animate() {
+        angle += 0.01;
+        drawSiO4(angle);
+        requestAnimationFrame(animate);
+    }
+    animate();
+})();
+
+// ============================================================
+//  전체 비교 다이어그램
+// ============================================================
+(function() {
+    const ctx = clearCanvas('canvas-compare');
+    const W = 760, H = 200;
+
+    const items = [
+        { label: '감람석\n독립형', color: '#22c55e', x: 70 },
+        { label: '휘석\n단사슬', color: '#3b82f6', x: 210 },
+        { label: '각섬석\n복사슬', color: '#a855f7', x: 360 },
+        { label: '흑운모\n판상형', color: '#f59e0b', x: 510 },
+        { label: '석영/장석\n망상형', color: '#e5e5e5', x: 660 },
+    ];
+
+    items.forEach((item, i) => {
+        // 배경 원
+        ctx.beginPath();
+        ctx.arc(item.x, 90, 55, 0, Math.PI * 2);
+        ctx.fillStyle = item.color + '22';
+        ctx.fill();
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 내부 텍스트
+        ctx.fillStyle = item.color;
+        ctx.font = 'bold 12px Malgun Gothic';
+        ctx.textAlign = 'center';
+        const lines = item.label.split('\n');
+        lines.forEach((line, j) => {
+            ctx.fillText(line, item.x, 82 + j * 18);
+        });
+
+        // 화살표 연결
+        if (i < items.length - 1) {
+            drawArrow(ctx, item.x + 60, 90, items[i + 1].x - 60, 90, 'rgba(255,255,255,0.4)');
+        }
+
+        // 공유 산소 개수
+        const oCount = ['0개', '2개', '2.5개', '3개', '4개'];
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '11px Malgun Gothic';
+        ctx.textAlign = 'center';
+        ctx.fillText(`O공유:${oCount[i]}`, item.x, 155);
+    });
+
+    // 제목
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '11px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('← 독립 ← 공유 산소 증가 →  망상 →', W / 2, 185);
+})();
+
+// ============================================================
+//  감람석 애니메이션
+// ============================================================
+let olivineState = 'idle';
+let olivineTimer = null;
+let olivineProgress = 0;
+
+function olivineAnim(action) {
+    if (olivineTimer) { clearInterval(olivineTimer); olivineTimer = null; }
+    olivineProgress = 0;
+    olivineState = action;
+
+    const desc = {
+        build: '🟢 SiO₄ 사면체들이 Fe²⁺/Mg²⁺ 이온으로 연결되는 독립형 구조를 형성 중...',
+        cleave: '💥 이온 결합에 충격! 특정 방향이 없어 불규칙하게 깨져요 (패각상 단구)',
+        reset: '🔄 초기화 완료'
+    };
+    document.getElementById('desc-olivine').textContent = desc[action];
+
+    if (action === 'reset') {
+        clearCanvas('canvas-olivine');
+        drawOlivineBase();
+        return;
+    }
+
+    olivineTimer = setInterval(() => {
+        olivineProgress += 0.025;
+        if (olivineProgress >= 1) {
+            olivineProgress = 1;
+            clearInterval(olivineTimer);
+            olivineTimer = null;
+        }
+        if (action === 'build') drawOlivineBuild(olivineProgress);
+        else if (action === 'cleave') drawOlivineCleave(olivineProgress);
+    }, 30);
+}
+
+function drawOlivineBase() {
+    const ctx = clearCanvas('canvas-olivine');
+    drawTitle(ctx, '감람석 - 독립형 SiO₄ 구조', 300, 25);
+    // 4개의 독립 사면체
+    const positions = [
+        { x: 120, y: 150 }, { x: 240, y: 120 }, { x: 360, y: 160 }, { x: 480, y: 130 }
+    ];
+    positions.forEach(p => drawSingleTetrahedron(ctx, p.x, p.y, 0.8));
+}
+
+function drawSingleTetrahedron(ctx, cx, cy, scale) {
+    const r = 30 * scale;
+    const oPositions = [
+        { x: cx - r, y: cy - r * 0.8 },
+        { x: cx + r, y: cy - r * 0.8 },
+        { x: cx, y: cy + r },
+        { x: cx, y: cy - r * 1.5 }
+    ];
+    oPositions.forEach(o => {
+        drawBond(ctx, cx, cy, o.x, o.y, 'rgba(100,200,255,0.5)', 2);
+        drawAtom(ctx, o.x, o.y, 12 * scale, '#e74c3c', 'O', '#fff');
+    });
+    drawAtom(ctx, cx, cy, 12 * scale, '#1abc9c', 'Si', '#fff');
+}
+
+function drawOlivineBuild(t) {
+    const ctx = clearCanvas('canvas-olivine');
+    drawTitle(ctx, '감람석 - 독립형 구조 형성', 300, 25);
+
+    const positions = [
+        { x: 100, y: 160 }, { x: 220, y: 130 }, { x: 340, y: 160 }, { x: 460, y: 130 }
+    ];
+
+    const n = Math.ceil(t * positions.length * 1.5);
+
+    positions.forEach((p, i) => {
+        const localT = Math.max(0, Math.min(1, (t * positions.length * 1.5 - i) / 1));
+        if (localT <= 0) return;
+
+        // 이온 결합선 (사면체 사이)
+        if (i < positions.length - 1 && localT > 0.5) {
+            const ionX = (p.x + positions[i + 1].x) / 2;
+            const ionY = (p.y + positions[i + 1].y) / 2;
+            const alpha = (localT - 0.5) * 2;
+            ctx.globalAlpha = alpha;
+            drawBond(ctx, p.x + 20, p.y, positions[i + 1].x - 20, positions[i + 1].y, '#ffd700', 2);
+            drawAtom(ctx, ionX, ionY, 10, '#ffd700', i % 2 === 0 ? 'Fe' : 'Mg', '#000');
+            ctx.globalAlpha = 1;
+        }
+
+        ctx.globalAlpha = Math.min(1, localT * 2);
+        drawSingleTetrahedron(ctx, p.x, p.y, 0.9);
+        ctx.globalAlpha = 1;
+    });
+
+    // 범례
+    ctx.fillStyle = 'rgba(255,215,0,0.9)';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'left';
+    ctx.fillText('황금색: Fe²⁺/Mg²⁺ 이온 결합', 20, 330);
+    ctx.fillStyle = 'rgba(100,200,255,0.9)';
+    ctx.fillText('청색선: Si-O 공유결합', 20, 350);
+}
+
+function drawOlivineCleave(t) {
+    const ctx = clearCanvas('canvas-olivine');
+    drawTitle(ctx, '감람석 - 패각상 단구 (쪼개짐 없음)', 300, 25);
+
+    const positions = [
+        { x: 100, y: 160 }, { x: 220, y: 130 }, { x: 340, y: 160 }, { x: 460, y: 130 }
+    ];
+
+    positions.forEach((p, i) => {
+        // 충격으로 이동
+        const dx = i % 2 === 0 ?
+            -Math.sin(t * Math.PI) * 30 * t :
+            Math.sin(t * Math.PI) * 25 * t;
+        const dy = Math.cos(t * Math.PI * 1.5) * 20 * t * (i % 3 === 0 ? 1 : -1);
+
+        drawSingleTetrahedron(ctx, p.x + dx, p.y + dy, 0.9);
+    });
+
+    // 충격 이펙트
+    if (t > 0.2) {
+        for (let k = 0; k < 5; k++) {
+            const px = 200 + k * 60;
+            const py = 150 + Math.sin(k * 1.2) * 30;
+            ctx.beginPath();
+            ctx.arc(px, py, t * 20, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255,100,50,${1 - t})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '13px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('불규칙하게 깨짐 - 약한 방향이 없기 때문!', 300, 340);
+    ctx.fillStyle = '#86efac';
+    ctx.fillText('→ 조개껍데기 모양의 단구면 형성', 300, 358);
+}
+
+// ============================================================
+//  휘석 애니메이션
+// ============================================================
+let pyroxeneTimer = null;
+let pyroxeneProgress = 0;
+let pyroxeneState = 'idle';
+
+function pyroxeneAnim(action) {
+    if (pyroxeneTimer) { clearInterval(pyroxeneTimer); pyroxeneTimer = null; }
+    pyroxeneProgress = 0;
+    pyroxeneState = action;
+
+    const descs = {
+        build: '🔵 SiO₄ 사면체들이 산소 2개씩 공유하며 단사슬을 형성하고 있어요!',
+        cleave: '💥 사슬 사이 이온 결합에 충격! 약 90° 방향으로 깔끔하게 쪼개져요!',
+        reset: '🔄 초기화'
+    };
+    document.getElementById('desc-pyroxene').textContent = descs[action];
+
+    if (action === 'reset') {
+        clearCanvas('canvas-pyroxene');
+        drawPyroxeneBase();
+        return;
+    }
+
+    pyroxeneTimer = setInterval(() => {
+        pyroxeneProgress += 0.02;
+        if (pyroxeneProgress >= 1) {
+            pyroxeneProgress = 1;
+            clearInterval(pyroxeneTimer);
+            pyroxeneTimer = null;
+        }
+        if (action === 'build') drawPyroxeneBuild(pyroxeneProgress);
+        else if (action === 'cleave') drawPyroxeneCleave(pyroxeneProgress);
+    }, 30);
+}
+
+function drawPyroxeneBase() {
+    const ctx = clearCanvas('canvas-pyroxene');
+    drawTitle(ctx, '휘석 - 단사슬 구조', 300, 25);
+    drawChainFull(ctx, 300, 180, 5, false, 1, '#3b82f6');
+}
+
+function drawChainFull(ctx, cx, cy, n, double, alpha, bondColor) {
+    ctx.globalAlpha = alpha;
+    const spacing = 70;
+    const startX = cx - (n - 1) * spacing / 2;
+
+    for (let i = 0; i < n; i++) {
+        const x = startX + i * spacing;
+
+        // 사면체
+        const oTop = { x: x, y: cy - 30 };
+        const oBot = { x: x, y: cy + 30 };
+        const oLeft = i === 0 ? { x: x - 25, y: cy } : { x: x - 25, y: cy };
+        const oRight = i === n - 1 ? { x: x + 25, y: cy } : { x: x + spacing / 2, y: cy };
+
+        // 공유 산소 (사슬 연결)
+        if (i < n - 1) {
+            const sharedX = x + spacing / 2;
+            drawBond(ctx, x, cy, sharedX, cy, bondColor || 'rgba(100,200,255,0.7)', 3);
+            drawBond(ctx, sharedX, cy, x + spacing, cy, bondColor || 'rgba(100,200,255,0.7)', 3);
+            drawAtom(ctx, sharedX, cy, 13, '#e74c3c', 'O', '#fff');
+        }
+
+        // 위아래 산소
+        drawBond(ctx, x, cy, oTop.x, oTop.y, 'rgba(100,200,255,0.5)', 2);
+        drawBond(ctx, x, cy, oBot.x, oBot.y, 'rgba(100,200,255,0.5)', 2);
+        drawAtom(ctx, oTop.x, oTop.y, 11, '#e74c3c', 'O', '#fff');
+        drawAtom(ctx, oBot.x, oBot.y, 11, '#e74c3c', 'O', '#fff');
+
+        // Si
+        drawAtom(ctx, x, cy, 14, '#1abc9c', 'Si', '#fff');
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawPyroxeneBuild(t) {
+    const ctx = clearCanvas('canvas-pyroxene');
+    drawTitle(ctx, '휘석 - 단사슬 형성 과정', 300, 25);
+
+    const n = 5;
+    const spacing = 70;
+    const cx = 300, cy = 190;
+    const startX = cx - (n - 1) * spacing / 2;
+
+    for (let i = 0; i < n; i++) {
+        const localT = Math.max(0, Math.min(1, (t * n * 1.2 - i) / 1));
+        if (localT <= 0) continue;
+
+        const x = startX + i * spacing;
+        ctx.globalAlpha = Math.min(1, localT * 2);
+
+        // 위아래 산소
+        const oTop = { x, y: cy - 30 };
+        const oBot = { x, y: cy + 30 };
+        drawBond(ctx, x, cy, oTop.x, oTop.y, 'rgba(100,200,255,0.5)', 2);
+        drawBond(ctx, x, cy, oBot.x, oBot.y, 'rgba(100,200,255,0.5)', 2);
+        drawAtom(ctx, oTop.x, oTop.y, 11, '#e74c3c', 'O', '#fff');
+        drawAtom(ctx, oBot.x, oBot.y, 11, '#e74c3c', 'O', '#fff');
+        drawAtom(ctx, x, cy, 14, '#1abc9c', 'Si', '#fff');
+
+        // 공유 O 연결
+        if (i < n - 1 && localT > 0.6) {
+            const sharedX = x + spacing / 2;
+            const linkAlpha = (localT - 0.6) / 0.4;
+            ctx.globalAlpha = linkAlpha;
+            drawBond(ctx, x, cy, sharedX, cy, '#ffd700', 3);
+            drawAtom(ctx, sharedX, cy, 13, '#e74c3c', 'O', '#fff');
+            // 공유 표시
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '10px Malgun Gothic';
+            ctx.textAlign = 'center';
+            ctx.fillText('공유!', sharedX, cy - 25);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // 범례
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'left';
+    ctx.fillText('황금선: 공유 산소 (Si-O-Si)', 20, 330);
+    ctx.fillStyle = 'rgba(100,200,255,0.9)';
+    ctx.fillText('청색선: 단독 산소 결합', 20, 348);
+
+    // 화학식
+    ctx.fillStyle = '#86efac';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Si:O = 1:3 → 화학식 SiO₃ 반복 단위`, 300, 368);
+}
+
+function drawPyroxeneCleave(t) {
+    const ctx = clearCanvas('canvas-pyroxene');
+    drawTitle(ctx, '휘석 - 2방향 쪼개짐 (약 90°)', 300, 25);
+
+    const n = 5, spacing = 70, cx = 300;
+    const startX = cx - (n - 1) * spacing / 2;
+
+    // 두 사슬
+    const chain1Y = 160 - t * 50;
+    const chain2Y = 240 + t * 50;
+
+    drawChainFull(ctx, 300, chain1Y, n, false, 1, '#3b82f6');
+    drawChainFull(ctx, 300, chain2Y, n, false, 1, '#3b82f6');
+
+    // 쪼개짐 선
+    if (t > 0.3) {
+        ctx.beginPath();
+        ctx.setLineDash([8, 4]);
+        ctx.moveTo(80, chain1Y + (chain2Y - chain1Y) / 2);
+        ctx.lineTo(520, chain1Y + (chain2Y - chain1Y) / 2);
+        ctx.strokeStyle = `rgba(255,80,80,${Math.min(1, (t - 0.3) * 3)})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 각도 표시
+        const midX = 300, midY = (chain1Y + chain2Y) / 2;
+        ctx.beginPath();
+        ctx.arc(midX, midY, 35, -Math.PI / 4, Math.PI / 4);
+        ctx.strokeStyle = '#ffdd00';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#ffdd00';
+        ctx.font = 'bold 14px Malgun Gothic';
+        ctx.textAlign = 'center';
+        ctx.fillText('≈90°', midX + 50, midY);
+    }
+
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '13px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('사슬 사이 이온 결합이 약해 수평으로 쪼개짐!', 300, 355);
+    ctx.fillStyle = '#86efac';
+    ctx.fillText('← 이 각도(90°)로 각섬석(120°)과 구분해요!', 300, 372);
+}
+
+// ============================================================
+//  각섬석 애니메이션
+// ============================================================
+let amphiboleTimer = null;
+let amphiboleProgress = 0;
+
+function amphiboleAnim(action) {
+    if (amphiboleTimer) { clearInterval(amphiboleTimer); amphiboleTimer = null; }
+    amphiboleProgress = 0;
+
+    const descs = {
+        build: '🟣 단사슬 2개가 지그재그로 연결되어 복사슬(이중 사슬)을 형성 중!',
+        cleave: '💥 복사슬 사이 이온 결합에 충격! 약 120° 방향으로 쪼개져요!',
+        reset: '🔄 초기화'
+    };
+    document.getElementById('desc-amphibole').textContent = descs[action];
+
+    if (action === 'reset') {
+        clearCanvas('canvas-amphibole');
+        drawAmphiboleBase();
+        return;
+    }
+
+    amphiboleTimer = setInterval(() => {
+        amphiboleProgress += 0.02;
+        if (amphiboleProgress >= 1) {
+            amphiboleProgress = 1;
+            clearInterval(amphiboleTimer);
+        }
+        if (action === 'build') drawAmphiboleBuild(amphiboleProgress);
+        else if (action === 'cleave') drawAmphiboleCleave(amphiboleProgress);
+    }, 30);
+}
+
+function drawAmphiboleBase() {
+    const ctx = clearCanvas('canvas-amphibole');
+    drawTitle(ctx, '각섬석 - 복사슬 구조', 300, 25);
+    drawDoubleChain(ctx, 300, 180, 1);
+}
+
+function drawDoubleChain(ctx, cx, baseY, alpha) {
+    ctx.globalAlpha = alpha;
+    const n = 5, spacing = 70;
+    const startX = cx - (n - 1) * spacing / 2;
+    const gap = 55;
+
+    // 사슬 1 (위)
+    const y1 = baseY - gap / 2;
+    // 사슬 2 (아래)
+    const y2 = baseY + gap / 2;
+
+    for (let chain = 0; chain < 2; chain++) {
+        const y = chain === 0 ? y1 : y2;
+        const offset = chain === 1 ? spacing / 2 : 0;
+
+        for (let i = 0; i < n; i++) {
+            const x = startX + i * spacing + offset;
+            if (x > cx + (n - 1) * spacing / 2 + spacing / 2) continue;
+
+            // 위아래 산소
+            const outY = chain === 0 ? y - 28 : y + 28;
+            drawBond(ctx, x, y, x, outY, 'rgba(100,200,255,0.5)', 2);
+            drawAtom(ctx, x, outY, 10, '#e74c3c', 'O', '#fff');
+
+            // 공유 O 옆
+            if (i < n - 1) {
+                const shX = x + spacing / 2;
+                if (shX <= cx + (n - 1) * spacing / 2 + spacing / 2) {
+                    drawBond(ctx, x, y, shX, y, 'rgba(100,200,255,0.7)', 2.5);
+                    drawAtom(ctx, shX, y, 11, '#e74c3c', 'O', '#fff');
+                }
+            }
+            drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+        }
+    }
+
+    // 사슬 연결 O (지그재그)
+    for (let i = 0; i < n; i++) {
+        const x1 = startX + i * spacing;
+        const x2 = startX + i * spacing + spacing / 2;
+        if (x2 > cx + (n - 1) * spacing / 2 + spacing / 2) break;
+        drawBond(ctx, x1, y1, x2, y2, '#ffd700', 2);
+        drawBond(ctx, x2, y2, x1 + spacing, y1, '#ffd700', 2);
+        // 연결 O
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        drawAtom(ctx, midX, midY, 10, '#ff9500', 'O', '#fff');
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function drawAmphiboleBuild(t) {
+    const ctx = clearCanvas('canvas-amphibole');
+    drawTitle(ctx, '각섬석 - 복사슬 형성 과정', 300, 25);
+
+    const phase1T = Math.min(1, t * 2);       // 단사슬 1 형성
+    const phase2T = Math.max(0, Math.min(1, (t - 0.4) * 2.5));  // 단사슬 2 형성
+    const phase3T = Math.max(0, Math.min(1, (t - 0.7) * 3.3));  // 연결
+
+    const cx = 300, baseY = 180;
+    const gap = 55;
+    const y1 = baseY - gap / 2 - (1 - phase2T) * 40;
+    const y2 = baseY + gap / 2 + (1 - phase2T) * 40;
+
+    // 사슬 1
+    ctx.globalAlpha = phase1T;
+    drawChainFull(ctx, cx, y1, 5, false, 1, '#3b82f6');
+    ctx.globalAlpha = 1;
+
+    // 사슬 2
+    ctx.globalAlpha = phase2T;
+    drawChainFull(ctx, cx, y2, 5, false, 1, '#a855f7');
+    ctx.globalAlpha = 1;
+
+    // 연결
+    if (phase3T > 0) {
+        const n = 5, spacing = 70;
+        const startX = cx - (n - 1) * spacing / 2;
+        ctx.globalAlpha = phase3T;
+        for (let i = 0; i < n - 1; i++) {
+            const x1 = startX + i * spacing;
+            const x2 = startX + i * spacing + spacing / 2;
+            drawBond(ctx, x1, y1, x2, y2, '#ffd700', 2.5);
+            drawBond(ctx, x2, y2, x1 + spacing, y1, '#ffd700', 2.5);
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '10px Malgun Gothic';
+            ctx.textAlign = 'center';
+            ctx.fillText('연결!', (x1 + x2) / 2, (y1 + y2) / 2 - 15);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // 설명
+    ctx.fillStyle = '#c4b5fd';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'left';
+    ctx.fillText('파란색: 단사슬 1 | 보라색: 단사슬 2 | 황금색: 연결 산소', 20, 330);
+    ctx.fillStyle = '#86efac';
+    ctx.textAlign = 'center';
+    ctx.fillText('복사슬 = 단사슬 × 2 → Si:O = 4:11', 300, 355);
+    ctx.fillText('OH⁻ 수산화기도 포함 (각섬석 특징!)', 300, 372);
+}
+
+function drawAmphiboleCleave(t) {
+    const ctx = clearCanvas('canvas-amphibole');
+    drawTitle(ctx, '각섬석 - 2방향 쪼개짐 (~120°/60°)', 300, 25);
+
+    const cx = 300, baseY = 190;
+    const gap = 55;
+
+    // 분리 방향 - 대각선으로
+    const dx = Math.sin(t * Math.PI) * 60 * t;
+    const dy = Math.cos(t * Math.PI * 0.5) * 30 * t;
+
+    // 복사슬 그룹들
+    ctx.save();
+    ctx.translate(-dx / 2, -dy);
+    drawDoubleChain(ctx, cx - 80, baseY, 1);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(dx / 2, dy);
+    drawDoubleChain(ctx, cx + 80, baseY, 1);
+    ctx.restore();
+
+    // 120° 각도 표시
+    if (t > 0.3) {
+        const midX = 300, midY = baseY;
+        // 120° 선
+        const ang1 = Math.PI / 6;  // 30°
+        const ang2 = Math.PI - Math.PI / 6;  // 150°
+        const len = 60;
+
+        ctx.beginPath();
+        ctx.moveTo(midX + len * Math.cos(ang1), midY + len * Math.sin(ang1));
+        ctx.lineTo(midX, midY);
+        ctx.lineTo(midX + len * Math.cos(ang2), midY + len * Math.sin(ang2));
+        ctx.strokeStyle = '#ffdd00';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(midX, midY, 30, ang1, ang2);
+        ctx.strokeStyle = '#ffdd00';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffdd00';
+        ctx.font = 'bold 14px Malgun Gothic';
+        ctx.textAlign = 'center';
+        ctx.fillText('120°', midX, midY - 40);
+    }
+
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '13px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('복사슬 구조라 쪼개짐 각도가 120°예요!', 300, 352);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText('휘석(90°)과 이 각도로 구분! 중요!', 300, 370);
+}
+
+// ============================================================
+//  흑운모 애니메이션
+// ============================================================
+let biotiteTimer = null;
+let biotiteProgress = 0;
+
+function biotiteAnim(action) {
+    if (biotiteTimer) { clearInterval(biotiteTimer); biotiteTimer = null; }
+    biotiteProgress = 0;
+
+    const descs = {
+        build: '🟤 SiO₄ 사면체들이 산소 3개씩 공유하며 2차원 판상 구조를 형성 중!',
+        cleave: '💥 K⁺ 이온 결합이 너무 약해요! 층이 종이처럼 벗겨집니다!',
+        reset: '🔄 초기화'
+    };
+    document.getElementById('desc-biotite').textContent = descs[action];
+
+    if (action === 'reset') {
+        clearCanvas('canvas-biotite');
+        drawBiotiteBase();
+        return;
+    }
+
+    biotiteTimer = setInterval(() => {
+        biotiteProgress += 0.02;
+        if (biotiteProgress >= 1) {
+            biotiteProgress = 1;
+            clearInterval(biotiteTimer);
+        }
+        if (action === 'build') drawBiotiteBuild(biotiteProgress);
+        else if (action === 'cleave') drawBiotiteCleave(biotiteProgress);
+    }, 30);
+}
+
+function drawBiotiteBase() {
+    const ctx = clearCanvas('canvas-biotite');
+    drawTitle(ctx, '흑운모 - 판상(층상) 구조', 300, 25);
+    drawLayerFull(ctx, 300, 180, 4, 1);
+}
+
+function drawLayerFull(ctx, cx, cy, layers, alpha) {
+    ctx.globalAlpha = alpha;
+    const layerH = 45;
+    const startY = cy - (layers - 1) * layerH / 2;
+
+    const colors = ['#f59e0b', '#d97706', '#b45309', '#92400e'];
+
+    for (let l = 0; l < layers; l++) {
+        const y = startY + l * layerH;
+        const cols = 7;
+        const spacingX = 60;
+        const startX = cx - (cols - 1) * spacingX / 2;
+
+        // K+ 이온 층 (위)
+        if (l > 0) {
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(startX - 20, y - layerH / 2 + 3);
+            ctx.lineTo(startX + (cols - 1) * spacingX + 20, y - layerH / 2 + 3);
+            ctx.strokeStyle = `rgba(255,215,0,0.5)`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            for (let k = 0; k < cols - 1; k++) {
+                const kx = startX + k * spacingX + spacingX / 2;
+                drawAtom(ctx, kx, y - layerH / 2 + 3, 8, '#ffd700', 'K', '#000');
+            }
+        }
+
+        // SiO4 격자
+        for (let c = 0; c < cols; c++) {
+            const x = startX + c * spacingX;
+            // 수평 공유 O
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.6)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 10, '#e74c3c', 'O', '#fff');
+            }
+            // 대각 연결
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX / 2, y - 18, 'rgba(100,200,255,0.4)', 1.5);
+                drawBond(ctx, x + spacingX, y, x + spacingX / 2, y - 18, 'rgba(100,200,255,0.4)', 1.5);
+                drawAtom(ctx, x + spacingX / 2, y - 18, 9, '#e74c3c', 'O', '#fff');
+            }
+            drawAtom(ctx, x, y, 12, colors[l % colors.length], 'Si', '#fff');
+        }
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawBiotiteBuild(t) {
+    const ctx = clearCanvas('canvas-biotite');
+    drawTitle(ctx, '흑운모 - 판상 구조 형성', 300, 25);
+
+    const layers = 3;
+    const layerH = 55;
+    const cy = 190;
+    const startY = cy - (layers - 1) * layerH / 2;
+
+    for (let l = 0; l < layers; l++) {
+        const lt = Math.max(0, Math.min(1, (t * layers * 1.2 - l)));
+        if (lt <= 0) continue;
+        ctx.globalAlpha = Math.min(1, lt);
+
+        const y = startY + l * layerH;
+        const cols = 6, spacingX = 65;
+        const startX = 300 - (cols - 1) * spacingX / 2;
+
+        for (let c = 0; c < cols; c++) {
+            const localT2 = Math.max(0, Math.min(1, (lt * cols - c)));
+            ctx.globalAlpha = Math.min(1, localT2);
+            const x = startX + c * spacingX;
+
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.6)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 10, '#e74c3c', 'O', '#fff');
+                drawBond(ctx, x, y, x + spacingX / 2, y - 20, 'rgba(100,200,255,0.4)', 1.5);
+                drawBond(ctx, x + spacingX, y, x + spacingX / 2, y - 20, 'rgba(100,200,255,0.4)', 1.5);
+                drawAtom(ctx, x + spacingX / 2, y - 20, 9, '#e74c3c', 'O', '#fff');
+            }
+            drawAtom(ctx, x, y, 12, '#f59e0b', 'Si', '#fff');
+        }
+        ctx.globalAlpha = 1;
+
+        // K+ 층
+        if (l < layers - 1 && lt > 0.8) {
+            const kAlpha = (lt - 0.8) * 5;
+            ctx.globalAlpha = Math.min(1, kAlpha);
+            for (let k = 0; k < cols - 1; k++) {
+                const kx = startX + k * spacingX + spacingX / 2;
+                drawAtom(ctx, kx, y + layerH / 2, 9, '#ffd700', 'K', '#000');
+            }
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    ctx.fillStyle = '#fde68a';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'left';
+    ctx.fillText('주황색: Si 원자 | 빨간색: O 원자 | 황금색: K⁺ 이온', 20, 332);
+    ctx.fillStyle = '#86efac';
+    ctx.textAlign = 'center';
+    ctx.fillText('공유 산소 3개 → 2차원 판 형성!', 300, 355);
+    ctx.fillStyle = '#fca5a5';
+    ctx.fillText('K⁺는 층 사이를 매우 약하게 연결해요', 300, 372);
+}
+
+function drawBiotiteCleave(t) {
+    const ctx = clearCanvas('canvas-biotite');
+    drawTitle(ctx, '흑운모 - 1방향 쪼개짐 (완전)', 300, 25);
+
+    const layers = 4;
+    const layerH = 55;
+    const cx = 300;
+
+    // 각 층이 위아래로 분리
+    for (let l = 0; l < layers; l++) {
+        const offset = (l - layers / 2 + 0.5) * (1 + t * 2);
+        const y = 190 + l * layerH * (1 + t * 1.5) - layers * layerH * t * 0.75;
+
+        const cols = 6, spacingX = 60;
+        const startX = cx - (cols - 1) * spacingX / 2;
+
+        ctx.globalAlpha = 1;
+        const colors = ['#f59e0b', '#d97706', '#b45309', '#92400e'];
+
+        // 층 배경
+        ctx.fillStyle = `rgba(${l % 2 === 0 ? '245,158,11' : '217,119,6'},0.1)`;
+        ctx.fillRect(startX - 15, y - 25, (cols - 1) * spacingX + 30, 30);
+
+        for (let c = 0; c < cols; c++) {
+            const x = startX + c * spacingX;
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.7)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 9, '#e74c3c', 'O', '#fff');
+            }
+            drawAtom(ctx, x, y, 11, colors[l % colors.length], 'Si', '#fff');
+        }
+
+        // 층 번호
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '11px Malgun Gothic';
+        ctx.textAlign = 'right';
+        ctx.fillText(`층 ${l + 1}`, startX - 20, y + 4);
+    }
+
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '13px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('K⁺ 이온 결합이 끊어져 수평으로 벗겨짐!', 300, 355);
+    ctx.fillStyle = '#c4b5fd';
+    ctx.fillText('종이처럼 얇게 벗겨지는 1방향 쪼개짐', 300, 372);
+}
+
+// ============================================================
+//  석영 애니메이션
+// ============================================================
+let quartzTimer = null;
+let quartzProgress = 0;
+
+function quartzAnim(action) {
+    if (quartzTimer) { clearInterval(quartzTimer); quartzTimer = null; }
+    quartzProgress = 0;
+
+    const descs = {
+        build: '⚪ 모든 산소 4개를 공유하며 3차원 망상 구조를 형성 중! Si:O = 1:2',
+        cleave: '💥 모든 방향이 균일하게 강해서 불규칙하게 깨져요 (패각상 단구)',
+        reset: '🔄 초기화'
+    };
+    document.getElementById('desc-quartz').textContent = descs[action];
+
+    if (action === 'reset') {
+        clearCanvas('canvas-quartz');
+        drawQuartzBase();
+        return;
+    }
+
+    quartzTimer = setInterval(() => {
+        quartzProgress += 0.018;
+        if (quartzProgress >= 1) {
+            quartzProgress = 1;
+            clearInterval(quartzTimer);
+        }
+        if (action === 'build') drawQuartzBuild(quartzProgress);
+        else if (action === 'cleave') drawQuartzCleave(quartzProgress);
+    }, 30);
+}
+
+function drawQuartzBase() {
+    const ctx = clearCanvas('canvas-quartz');
+    drawTitle(ctx, '석영 - 3D 망상 구조', 300, 25);
+    drawQuartzGrid(ctx, 300, 190, 1);
+}
+
+function drawQuartzGrid(ctx, cx, cy, alpha) {
+    ctx.globalAlpha = alpha;
+    const cols = 6, rows = 4;
+    const spacingX = 70, spacingY = 55;
+    const startX = cx - (cols - 1) * spacingX / 2;
+    const startY = cy - (rows - 1) * spacingY / 2;
+
+    // 수평 결합
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols - 1; c++) {
+            const x1 = startX + c * spacingX;
+            const x2 = startX + (c + 1) * spacingX;
+            const y = startY + r * spacingY;
+            drawBond(ctx, x1, y, x2, y, 'rgba(100,200,255,0.5)', 2);
+            drawAtom(ctx, (x1 + x2) / 2, y, 9, '#e74c3c', 'O', '#fff');
+        }
+    }
+
+    // 수직 결합
+    for (let r = 0; r < rows - 1; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = startX + c * spacingX;
+            const y1 = startY + r * spacingY;
+            const y2 = startY + (r + 1) * spacingY;
+            drawBond(ctx, x, y1, x, y2, 'rgba(100,200,255,0.5)', 2);
+            drawAtom(ctx, x, (y1 + y2) / 2, 9, '#e74c3c', 'O', '#fff');
+        }
+    }
+
+    // Si 원자
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = startX + c * spacingX;
+            const y = startY + r * spacingY;
+            drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+        }
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function drawQuartzBuild(t) {
+    const ctx = clearCanvas('canvas-quartz');
+    drawTitle(ctx, '석영 - 3D 망상 구조 형성', 300, 25);
+
+    const cols = 6, rows = 4;
+    const spacingX = 70, spacingY = 55;
+    const cx = 300, cy = 190;
+    const startX = cx - (cols - 1) * spacingX / 2;
+    const startY = cy - (rows - 1) * spacingY / 2;
+
+    const totalNodes = rows * cols;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const nodeIdx = r * cols + c;
+            const lt = Math.max(0, Math.min(1, (t * totalNodes * 1.1 - nodeIdx)));
+            if (lt <= 0) continue;
+            ctx.globalAlpha = Math.min(1, lt * 2);
+
+            const x = startX + c * spacingX;
+            const y = startY + r * spacingY;
+
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 9, '#e74c3c', 'O', '#fff');
+            }
+            if (r < rows - 1) {
+                drawBond(ctx, x, y, x, y + spacingY, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x, y + spacingY / 2, 9, '#e74c3c', 'O', '#fff');
+            }
+
+            drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+        }
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = '#86efac';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('Si-O 공유결합이 4방향 모두! → SiO₂', 300, 352);
+    ctx.fillStyle = '#7dd3fc';
+    ctx.fillText('모든 산소가 공유 → 여분의 양이온 필요 없음!', 300, 370);
+}
+
+function drawQuartzCleave(t) {
+    const ctx = clearCanvas('canvas-quartz');
+    drawTitle(ctx, '석영 - 패각상 단구 (모든 방향 균일!)', 300, 25);
+
+    const cx = 300, cy = 190;
+    const r = 100;
+
+    // 원형 결정체
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    const g = ctx.createRadialGradient(cx - 20, cy - 20, 10, cx, cy, r);
+    g.addColorStop(0, 'rgba(200,220,255,0.8)');
+    g.addColorStop(1, 'rgba(100,150,255,0.2)');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(150,200,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 내부 망상
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            const nx = cx - 80 + i * 25;
+            const ny = cy - 80 + j * 25;
+            const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+            if (dist < r - 10) {
+                drawAtom(ctx, nx, ny, 5, '#1abc9c', '', '');
+                if (i < 7) drawBond(ctx, nx, ny, nx + 25, ny, 'rgba(100,200,255,0.3)', 1);
+                if (j < 7) drawBond(ctx, nx, ny, nx, ny + 25, 'rgba(100,200,255,0.3)', 1);
+            }
+        }
+    }
+
+    // 균열 (불규칙)
+    if (t > 0.2) {
+        const crackAlpha = (t - 0.2) / 0.8;
+        ctx.globalAlpha = crackAlpha;
+        const cracks = [
+            [[cx, cy], [cx + 60, cy - 30], [cx + 100, cy - 10]],
+            [[cx, cy], [cx - 50, cy + 40], [cx - 80, cy + 20]],
+            [[cx, cy], [cx + 30, cy + 70], [cx + 50, cy + 90]],
+        ];
+        cracks.forEach(crack => {
+            ctx.beginPath();
+            ctx.moveTo(crack[0][0], crack[0][1]);
+            crack.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = '#fca5a5';
+        ctx.font = '12px Malgun Gothic';
+        ctx.textAlign = 'center';
+        ctx.fillText('불규칙한 방향으로 깨짐 = 패각상 단구', cx, cy + r + 25);
+    }
+
+    ctx.fillStyle = '#86efac';
+    ctx.font = '13px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('모든 방향이 동일하게 강함 → 쪼개짐 방향 없음!', 300, 365);
+}
+
+// ============================================================
+//  장석 애니메이션
+// ============================================================
+let feldsparTimer = null;
+let feldsparProgress = 0;
+let feldsparState = 'idle';
+
+function feldsparAnim(action) {
+    if (feldsparTimer) { clearInterval(feldsparTimer); feldsparTimer = null; }
+    feldsparProgress = 0;
+    feldsparState = action;
+
+    const descs = {
+        build: '🟡 석영과 같은 망상 구조 형성 중... Si를 Al이 치환할 준비!',
+        substitute: '🔄 일부 Si⁴⁺가 Al³⁺로 치환됩니다! 음전하 발생 → K⁺/Na⁺로 중화!',
+        cleave: '💥 Al 치환 부위와 K⁺/Na⁺ 결합이 약해 2방향으로 쪼개져요!',
+        reset: '🔄 초기화'
+    };
+    document.getElementById('desc-feldspar').textContent = descs[action];
+
+    if (action === 'reset') {
+        clearCanvas('canvas-feldspar');
+        drawFeldsparBase();
+        return;
+    }
+
+    feldsparTimer = setInterval(() => {
+        feldsparProgress += 0.018;
+        if (feldsparProgress >= 1) {
+            feldsparProgress = 1;
+            clearInterval(feldsparTimer);
+        }
+        if (action === 'build') drawFeldsparBuild(feldsparProgress);
+        else if (action === 'substitute') drawFeldsparSub(feldsparProgress);
+        else if (action === 'cleave') drawFeldsparCleave(feldsparProgress);
+    }, 30);
+}
+
+function drawFeldsparBase() {
+    const ctx = clearCanvas('canvas-feldspar');
+    drawTitle(ctx, '장석 - 망상 구조 (Al 치환 포함)', 300, 25);
+    drawFeldsparGrid(ctx, 300, 190, 1, false);
+}
+
+function drawFeldsparGrid(ctx, cx, cy, alpha, showAl) {
+    ctx.globalAlpha = alpha;
+    const cols = 6, rows = 4;
+    const spacingX = 70, spacingY = 55;
+    const startX = cx - (cols - 1) * spacingX / 2;
+    const startY = cy - (rows - 1) * spacingY / 2;
+
+    // Al 치환 위치 (규칙적으로 일부)
+    const alPositions = [[0, 0], [2, 1], [1, 2], [3, 0], [4, 2]];
+    const isAl = (r, c) => showAl && alPositions.some(([ar, ac]) => ar === r && ac === c);
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = startX + c * spacingX;
+            const y = startY + r * spacingY;
+
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 9, '#e74c3c', 'O', '#fff');
+            }
+            if (r < rows - 1) {
+                drawBond(ctx, x, y, x, y + spacingY, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x, y + spacingY / 2, 9, '#e74c3c', 'O', '#fff');
+            }
+
+            if (isAl(r, c)) {
+                drawAtom(ctx, x, y, 14, '#f97316', 'Al', '#fff');
+                // K+ 옆에
+                if (showAl) {
+                    drawAtom(ctx, x + 20, y - 20, 10, '#ffd700', 'K', '#000');
+                }
+            } else {
+                drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+            }
+        }
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawFeldsparBuild(t) {
+    const ctx = clearCanvas('canvas-feldspar');
+    drawTitle(ctx, '장석 - 망상 구조 형성', 300, 25);
+
+    const cols = 6, rows = 4;
+    const spacingX = 70, spacingY = 55;
+    const cx = 300, cy = 190;
+    const startX = cx - (cols - 1) * spacingX / 2;
+    const startY = cy - (rows - 1) * spacingY / 2;
+    const total = rows * cols;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const idx = r * cols + c;
+            const lt = Math.max(0, Math.min(1, (t * total * 1.1 - idx)));
+            if (lt <= 0) continue;
+            ctx.globalAlpha = Math.min(1, lt * 2);
+
+            const x = startX + c * spacingX;
+            const y = startY + r * spacingY;
+
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 9, '#e74c3c', 'O', '#fff');
+            }
+            if (r < rows - 1) {
+                drawBond(ctx, x, y, x, y + spacingY, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x, y + spacingY / 2, 9, '#e74c3c', 'O', '#fff');
+            }
+            drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+        }
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = '#86efac';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('석영과 같은 3D 망상 구조 형성!', 300, 352);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText('다음 단계: Al 치환 버튼을 눌러보세요!', 300, 370);
+}
+
+function drawFeldsparSub(t) {
+    const ctx = clearCanvas('canvas-feldspar');
+    drawTitle(ctx, '장석 - Al 치환 과정', 300, 25);
+
+    const cols = 6, rows = 4;
+    const spacingX = 70, spacingY = 55;
+    const cx = 300, cy = 190;
+    const startX = cx - (cols - 1) * spacingX / 2;
+    const startY = cy - (rows - 1) * spacingY / 2;
+
+    const alPositions = [[0, 0], [2, 1], [1, 2], [3, 0], [4, 2]];
+    const isAl = (r, c) => alPositions.some(([ar, ac]) => ar === r && ac === c);
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = startX + c * spacingX;
+            const y = startY + r * spacingY;
+
+            if (c < cols - 1) {
+                drawBond(ctx, x, y, x + spacingX, y, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x + spacingX / 2, y, 9, '#e74c3c', 'O', '#fff');
+            }
+            if (r < rows - 1) {
+                drawBond(ctx, x, y, x, y + spacingY, 'rgba(100,200,255,0.5)', 2);
+                drawAtom(ctx, x, y + spacingY / 2, 9, '#e74c3c', 'O', '#fff');
+            }
+
+            if (isAl(r, c)) {
+                // 치환 애니메이션
+                const alIdx = alPositions.findIndex(([ar, ac]) => ar === r && ac === c);
+                const subT = Math.max(0, Math.min(1, (t * alPositions.length * 1.2 - alIdx)));
+
+                if (subT > 0.5) {
+                    // Al 원자 (치환됨)
+                    drawAtom(ctx, x, y, 14, '#f97316', 'Al', '#fff');
+
+                    // 치환 이펙트
+                    if (subT < 1) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 14 + (1 - subT) * 20, 0, Math.PI * 2);
+                        ctx.strokeStyle = `rgba(249,115,22,${1 - subT})`;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+
+                    // K+ 추가
+                    if (subT > 0.8) {
+                        const ka = (subT - 0.8) * 5;
+                        ctx.globalAlpha = ka;
+                        drawAtom(ctx, x + 22, y - 22, 10, '#ffd700', 'K⁺', '#000');
+                        ctx.globalAlpha = 1;
+                    }
+                } else {
+                    // 아직 Si
+                    drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+                }
+            } else {
+                drawAtom(ctx, x, y, 13, '#1abc9c', 'Si', '#fff');
+            }
+        }
+    }
+
+    ctx.fillStyle = '#fb923c';
+    ctx.font = '12px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('주황색(Al)이 청록색(Si)을 대체!', 300, 350);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText('Si⁴⁺ → Al³⁺: 전하 -1 발생 → K⁺/Na⁺가 중화', 300, 368);
+}
+
+function drawFeldsparCleave(t) {
+    const ctx = clearCanvas('canvas-feldspar');
+    drawTitle(ctx, '장석 - 2방향 쪼개짐 (완전)', 300, 25);
+
+    const cx = 300, cy = 190;
+
+    // 쪼개진 조각들
+    const pieces = [
+        { dx: -t * 80, dy: -t * 50, rot: -t * 0.2 },
+        { dx: t * 80, dy: -t * 30, rot: t * 0.15 },
+        { dx: -t * 40, dy: t * 60, rot: -t * 0.1 },
+        { dx: t * 50, dy: t * 70, rot: t * 0.18 },
+    ];
+
+    pieces.forEach((p, i) => {
+        ctx.save();
+        ctx.translate(cx + p.dx, cy + p.dy);
+        ctx.rotate(p.rot);
+
+        // 조각 모양
+        const w = 70, h = 55;
+        ctx.fillStyle = `rgba(${i % 2 === 0 ? '234,179,8' : '249,115,22'},0.3)`;
+        ctx.strokeStyle = `rgba(${i % 2 === 0 ? '234,179,8' : '249,115,22'},0.8)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(-w / 2, -h / 2, w, h);
+        ctx.fill();
+        ctx.stroke();
+
+        // 조각 내부 격자
+        for (let r = 0; r < 2; r++) {
+            for (let c = 0; c < 3; c++) {
+                const nx = -w / 2 + 18 + c * 18;
+                const ny = -h / 2 + 18 + r * 18;
+                drawAtom(ctx, nx, ny, 5, '#1abc9c', '', '');
+            }
+        }
+
+        ctx.restore();
+    });
+
+    // 쪼개짐 방향 표시
+    if (t > 0.3) {
+        const alpha = Math.min(1, (t - 0.3) * 3);
+        ctx.globalAlpha = alpha;
+
+        // 수평선
+        ctx.beginPath();
+        ctx.setLineDash([8, 4]);
+        ctx.moveTo(cx - 150, cy);
+        ctx.lineTo(cx + 150, cy);
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 수직선
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 100);
+        ctx.lineTo(cx, cy + 100);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+
+        // 각도 표시
+        ctx.fillStyle = '#ffdd00';
+        ctx.font = 'bold 13px Malgun Gothic';
+        ctx.textAlign = 'center';
+        ctx.fillText('거의 90°', cx + 60, cy - 15);
+    }
+
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '13px Malgun Gothic';
+    ctx.textAlign = 'center';
+    ctx.fillText('Al 치환 부위 & K⁺/Na⁺ 결합이 약점!', 300, 352);
+    ctx.fillStyle = '#86efac';
+    ctx.fillText('석영(쪼개짐X)과 달리 2방향으로 완전 쪼개짐!', 300, 370);
+}
+
+// ============================================================
+//  초기 기본 드로잉
+// ============================================================
+drawOlivineBase();
+drawPyroxeneBase();
+drawAmphiboleBase();
+drawBiotiteBase();
+drawQuartzBase();
+drawFeldsparBase();
+
+// ============================================================
+//  탭 전환
+// ============================================================
+function showPanel(id) {
+    document.querySelectorAll('.mineral-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
+
